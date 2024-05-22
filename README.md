@@ -1,0 +1,1 @@
+# kadai-2-weather-app-takahataTakumi
