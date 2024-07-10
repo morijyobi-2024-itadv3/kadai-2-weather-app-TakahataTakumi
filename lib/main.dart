@@ -27,70 +27,44 @@ class MyApp extends StatelessWidget {
 }
 
 class Weather {
-  final String publishingOffice;
-  final String reportDatetime;
-  final List<TimeSeries> timeSeries;
+  final String pref;
+  final String area;
+  final WeatherDetail today;
+  final WeatherDetail tomorrow;
 
   Weather({
-    required this.publishingOffice,
-    required this.reportDatetime,
-    required this.timeSeries,
+    required this.pref,
+    required this.area,
+    required this.today,
+    required this.tomorrow,
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) {
-    var timeSeriesFromJson = json['timeSeries'] as List;
-    List<TimeSeries> timeSeriesList = timeSeriesFromJson.map((i) => TimeSeries.fromJson(i)).toList();
-
     return Weather(
-      publishingOffice: json['publishingOffice'],
-      reportDatetime: json['reportDatetime'],
-      timeSeries: timeSeriesList,
+      pref: json['pref'],
+      area: json['area'],
+      today: WeatherDetail.fromJson(json['today']),
+      tomorrow: WeatherDetail.fromJson(json['tomorrow']),
     );
   }
 }
 
-class TimeSeries {
-  final List<String> timeDefines;
-  final List<Area> areas;
+class WeatherDetail {
+  final String weather;
+  final String maxtemp;
+  final String mintemp;
 
-  TimeSeries({
-    required this.timeDefines,
-    required this.areas,
+  WeatherDetail({
+    required this.weather,
+    required this.maxtemp,
+    required this.mintemp,
   });
 
-  factory TimeSeries.fromJson(Map<String, dynamic> json) {
-    var areasFromJson = json['areas'] as List;
-    List<Area> areasList = areasFromJson.map((i) => Area.fromJson(i)).toList();
-
-    return TimeSeries(
-      timeDefines: List<String>.from(json['timeDefines']),
-      areas: areasList,
-    );
-  }
-}
-
-class Area {
-  final Map<String, String> area;
-  final List<String>? weatherCodes;
-  final List<String>? weathers;
-  final List<String>? winds;
-  final List<String>? waves;
-
-  Area({
-    required this.area,
-    this.weatherCodes,
-    this.weathers,
-    this.winds,
-    this.waves,
-  });
-
-  factory Area.fromJson(Map<String, dynamic> json) {
-    return Area(
-      area: Map<String, String>.from(json['area']),
-      weatherCodes: json['weatherCodes'] != null ? List<String>.from(json['weatherCodes']) : null,
-      weathers: json['weathers'] != null ? List<String>.from(json['weathers']) : null,
-      winds: json['winds'] != null ? List<String>.from(json['winds']) : null,
-      waves: json['waves'] != null ? List<String>.from(json['waves']) : null,
+  factory WeatherDetail.fromJson(Map<String, dynamic> json) {
+    return WeatherDetail(
+      weather: json['weather'],
+      maxtemp: json['maxtemp'],
+      mintemp: json['mintemp'],
     );
   }
 }
@@ -122,13 +96,15 @@ class _CheckHttpResponseState extends State<CheckHttpResponse> {
       future: futureWeather,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          String weather = 'N/A';
+          String todayWeather = 'N/A';
+          String tomorrowWeather = 'N/A';
           bool found = false;
           for (var weatherData in snapshot.data!) {
             for (var timeSeries in weatherData.timeSeries) {
               for (var area in timeSeries.areas) {
-                if (area.area['name'] == '内陸' && area.weathers != null && area.weathers!.isNotEmpty) {
-                  weather = area.weathers![0];
+                if (area.area['name'] == '内陸' && area.weathers != null && area.weathers!.length >= 2) {
+                  todayWeather = area.weathers![0];
+                  tomorrowWeather = area.weathers![1];
                   found = true;
                   break;
                 }
@@ -141,7 +117,12 @@ class _CheckHttpResponseState extends State<CheckHttpResponse> {
               break;
             }
           }
-          return Text('岩手県内陸の天気: $weather');
+          return Column(
+            children: <Widget>[
+              Text('岩手県内陸の今日の天気: $todayWeather'),
+              Text('岩手県内陸の明日の天気: $tomorrowWeather'),
+            ],
+          );
         } else if (snapshot.hasError) {
           return Text('${snapshot.error}');
         }
