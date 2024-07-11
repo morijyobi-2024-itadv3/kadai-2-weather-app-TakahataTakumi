@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' show utf8;
@@ -71,7 +72,6 @@ class WeatherDetail {
 
 class CheckHttpResponse extends StatefulWidget {
   const CheckHttpResponse({Key? key}) : super(key: key);
-
   @override
   _CheckHttpResponseState createState() => _CheckHttpResponseState();
 }
@@ -80,13 +80,15 @@ class _CheckHttpResponseState extends State<CheckHttpResponse> {
   late Future<List<Weather>> futureWeather = fetchWeather();
 
   Future<List<Weather>> fetchWeather() async {
-    final response = await http.get(Uri.parse('https://www.jma.go.jp/bosai/forecast/data/forecast/030000.json'));
+    final response = await http
+        .get(Uri.parse('ngrokUrl'));
 
     if (response.statusCode == 200) {
-      List jsonResponse = json.decode(utf8.decode(response.bodyBytes));
-      return jsonResponse.map((item) => Weather.fromJson(item)).toList();
+      Map<String, dynamic> jsonResponse = json.decode(utf8.decode(response.bodyBytes));
+
+      return [Weather.fromJson(jsonResponse)];
     } else {
-      throw Exception('Failed to load weathers');
+      throw Exception('Failed to load weather');
     }
   }
 
@@ -96,31 +98,16 @@ class _CheckHttpResponseState extends State<CheckHttpResponse> {
       future: futureWeather,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          String todayWeather = 'N/A';
-          String tomorrowWeather = 'N/A';
-          bool found = false;
-          for (var weatherData in snapshot.data!) {
-            for (var timeSeries in weatherData.timeSeries) {
-              for (var area in timeSeries.areas) {
-                if (area.area['name'] == '内陸' && area.weathers != null && area.weathers!.length >= 2) {
-                  todayWeather = area.weathers![0];
-                  tomorrowWeather = area.weathers![1];
-                  found = true;
-                  break;
-                }
-              }
-              if (found) {
-                break;
-              }
-            }
-            if (found) {
-              break;
-            }
-          }
           return Column(
             children: <Widget>[
-              Text('岩手県内陸の今日の天気: $todayWeather'),
-              Text('岩手県内陸の明日の天気: $tomorrowWeather'),
+              Text('都道府県: ${snapshot.data![0].pref ?? 'N/A'}'),
+              Text('地域: ${snapshot.data![0].area ?? 'N/A'}'),
+              Text('今日の天気: ${snapshot.data![0].today.weather}'),
+              Text('最高気温: ${snapshot.data![0].today.maxtemp}'),
+              Text('最低気温: ${snapshot.data![0].today.mintemp}'),
+              Text('明日の天気: ${snapshot.data![0].tomorrow.weather}'),
+              Text('最高気温: ${snapshot.data![0].tomorrow.maxtemp}'),
+              Text('最低気温: ${snapshot.data![0].tomorrow.mintemp}'),
             ],
           );
         } else if (snapshot.hasError) {
